@@ -1,0 +1,86 @@
+{
+  "output": "renders/gece_fari.png",
+  "patika": {
+    "segments": [
+      {
+        "tip": "duz",
+        "uzunluk": 460
+      }
+    ]
+  },
+  "hat": {
+    "ornek_adim": 0.5,
+    "katoneri_aralik": 50
+  },
+  "zemin": {
+    "color": [
+      0.02,
+      0.022,
+      0.018
+    ]
+  },
+  "sefer": {
+    "s": 60,
+    "theta": 0.9,
+    "duman_t": 0.8,
+    "vagonlar": [
+      {
+        "tip": "yolcu",
+        "boy": 8.6
+      },
+      {
+        "tip": "yuk",
+        "boy": 7.4
+      }
+    ],
+    "gece": {
+      "far_guc": 5500,
+      "sinyal_s": 92.0,
+      "sinyal_taraf": -1
+    }
+  },
+  "sun": {
+    "elevation_deg": -2.5,
+    "azimuth_deg": 210,
+    "strength": 0.5,
+    "color": [
+      0.45,
+      0.55,
+      0.85
+    ],
+    "disk": {
+      "radius": 3.2,
+      "strength": 2.2,
+      "color": [
+        0.85,
+        0.9,
+        1.0
+      ]
+    }
+  },
+  "sky": {
+    "turbidity": 2.0,
+    "strength": 0.12
+  },
+  "camera": {
+    "mode": "sabit",
+    "position": [
+      8.5,
+      96,
+      2.8
+    ],
+    "look_at": [
+      -1,
+      58,
+      1.7
+    ],
+    "lens": 45
+  },
+  "render": {
+    "width": 1600,
+    "height": 900,
+    "samples": 192,
+    "exposure": 1.0,
+    "look": "Medium High Contrast"
+  }
+}
