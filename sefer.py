@@ -203,10 +203,10 @@ def duman_havuzu(refs, adet=16):
 
 
 def duman_guncelle(havuz, kaynak_dunya, t, ruzgar=(-1.6, 0.35)):
-    n = len(havuz)
+    adet = len(havuz)
     periyot = 0.42
     for i, p in enumerate(havuz):
-        faz = ((t / periyot + i / n) % 1.0)
+        faz = ((t / periyot + i / adet) % 1.0)
         yas = faz * 2.8
         p.location = (kaynak_dunya.x + ruzgar[0] * yas + 0.35 * math.sin(yas * 2 + i),
                       kaynak_dunya.y + ruzgar[1] * yas + 0.3 * math.cos(yas * 1.7 + i * 2),
@@ -214,9 +214,11 @@ def duman_guncelle(havuz, kaynak_dunya, t, ruzgar=(-1.6, 0.35)):
         olcek = 0.28 + 1.5 * yas
         p.scale = (olcek, olcek, olcek * 0.8)
         m = p.data.materials[0]
-        b = m.node_tree.nodes.get("Principled BSDF")
-        if b and "Alpha" in b.inputs:
-            b.inputs["Alpha"].default_value = max(0.03, 0.5 * (1.0 - faz))
+        if m.use_nodes:
+            for dugum in m.node_tree.nodes:
+                if dugum.type == "VOLUME_PRINCIPLED":
+                    dugum.inputs["Density"].default_value = \
+                        0.8 * (1.0 - faz) ** 1.5
         p.visible_shadow = False
 
 
