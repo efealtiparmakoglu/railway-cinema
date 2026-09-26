@@ -189,7 +189,8 @@ def trene_koku_ver(kok, refs, s, patika_obj):
         (0.0, 0.0, 0.0, 1.0),
     ))
     kok.matrix_world = M
-    refs["_teget"] = X
+    if refs is not None:
+        refs["_teget"] = X
 
 
 def duman_havuzu(refs, adet=16):
@@ -200,6 +201,105 @@ def duman_havuzu(refs, adet=16):
         havuz.append(p)
     refs["duman"] = havuz
     return havuz
+
+
+def gece_kur(refs, gece_cfg):
+    """Gece seferi: on far spot'u + ateş kutusu parıltısı + sinyal lambası."""
+    kok = refs["kok"]
+
+    # on far: spot, lokomotif burnunda, +X ileriye
+    spot_data = bpy.data.lights.new("OnFar", "SPOT")
+    spot_data.energy = gece_cfg.get("far_guc", 6000)
+    spot_data.spot_size = math.radians(38)
+    spot_data.spot_blend = 0.35
+    spot_data.color = (1.0, 0.9, 0.72)
+    spot_data.shadow_soft_size = 0.08
+    spot = bpy.data.objects.new("OnFar", spot_data)
+    bpy.context.collection.objects.link(spot)
+    spot.parent = kok
+    spot.location = (6.05, 0, 2.30)
+    hedef = Vector((60, 0, 0.2))
+    spot.rotation_euler = (hedef - Vector(spot.location)
+                           ).to_track_quat("-Z", "Y").to_euler()
+    # far lambasi gozu (emissive kucuk disk)
+    m_far = bpy.data.materials.new("FarGozu")
+    m_far.use_nodes = True
+    nt = m_far.node_tree
+    nt.nodes.clear()
+    em = nt.nodes.new("ShaderNodeEmission")
+    em.inputs["Color"].default_value = (1.0, 0.93, 0.75, 1)
+    em.inputs["Strength"].default_value = 14.0
+    outn = nt.nodes.new("ShaderNodeOutputMaterial")
+    nt.links.new(em.outputs["Emission"], outn.inputs["Surface"])
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.10, segments=20, ring_count=14,
+                                         location=(6.28, 0, 2.30))
+    goz = bpy.context.active_object
+    goz.name = "FarGozu"
+    bpy.ops.object.shade_smooth()
+    goz.data.materials.append(m_far)
+    goz.parent = kok
+
+    # ates kutusu pariltisi: kabin alti turuncu emissive + point
+    m_ates = bpy.data.materials.new("AtesKutusu")
+    m_ates.use_nodes = True
+    nt2 = m_ates.node_tree
+    nt2.nodes.clear()
+    em2 = nt2.nodes.new("ShaderNodeEmission")
+    em2.inputs["Color"].default_value = (1.0, 0.32, 0.05, 1)
+    em2.inputs["Strength"].default_value = 14.0
+    out2 = nt2.nodes.new("ShaderNodeOutputMaterial")
+    nt2.links.new(em2.outputs["Emission"], out2.inputs["Surface"])
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(-1.2, 0, 1.35))
+    ates = bpy.context.active_object
+    ates.name = "AtesKutusuPariltisi"
+    ates.scale = (0.5, 1.1, 0.5)
+    ates.data.materials.append(m_ates)
+    ates.parent = kok
+    p_data = bpy.data.lights.new("AtesNokta", "POINT")
+    p_data.energy = 45
+    p_data.color = (1.0, 0.38, 0.08)
+    p_data.shadow_soft_size = 0.3
+    p_nokta = bpy.data.objects.new("AtesNokta", p_data)
+    bpy.context.collection.objects.link(p_nokta)
+    p_nokta.parent = kok
+    p_nokta.location = (-1.2, 0, 1.2)
+
+
+def sinyal_kur(patika_obj, s, taraf=1):
+    """Hat kenari sinyali: gri direk + kirmizi emissive goz."""
+    konum, teget, sag, cant = ray.cerceve(patika_obj, s)
+    yan = taraf * 3.1
+    mx, my = konum.x + sag.x * yan, konum.y + sag.y * yan
+    m_govde = bpy.data.materials.new("SinyalGovde")
+    m_govde.use_nodes = True
+    b = m_govde.node_tree.nodes["Principled BSDF"]
+    b.inputs["Base Color"].default_value = (0.12, 0.12, 0.13, 1)
+    bpy.ops.mesh.primitive_cylinder_add(radius=0.09, depth=3.6,
+                                        location=(mx, my, 1.8), vertices=16)
+    direk = bpy.context.active_object
+    direk.name = "SinyalDirek"
+    direk.data.materials.append(m_govde)
+    m_goz = bpy.data.materials.new("SinyalGoz")
+    m_goz.use_nodes = True
+    nt = m_goz.node_tree
+    nt.nodes.clear()
+    em = nt.nodes.new("ShaderNodeEmission")
+    em.inputs["Color"].default_value = (1.0, 0.05, 0.03, 1)
+    em.inputs["Strength"].default_value = 30.0
+    outn = nt.nodes.new("ShaderNodeOutputMaterial")
+    nt.links.new(em.outputs["Emission"], outn.inputs["Surface"])
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.14, segments=20, ring_count=14,
+                                         location=(mx, my, 3.72))
+    goz = bpy.context.active_object
+    goz.name = "SinyalGoz"
+    bpy.ops.object.shade_smooth()
+    goz.data.materials.append(m_goz)
+    p_data = bpy.data.lights.new("SinyalIsik", "POINT")
+    p_data.energy = 12
+    p_data.color = (1.0, 0.1, 0.05)
+    p_nokta = bpy.data.objects.new("SinyalIsik", p_data)
+    bpy.context.collection.objects.link(p_nokta)
+    p_nokta.location = (mx, my, 3.72)
 
 
 def duman_guncelle(havuz, kaynak_dunya, t, ruzgar=(-1.6, 0.35)):
@@ -263,8 +363,35 @@ def main():
     sefer = cfg["sefer"]
     s0 = sefer.get("s", 60.0)
     v = sefer.get("hiz", 9.0)
-    trene_koku_ver(refs["kok"], refs, s0, patika_obj)
+
+    # ---------------- cok arac: loko+tender + vagon dizisi
+    # her aracin kendi koku var; offset = kuyrugun s0'dan geriye uzakligi
+    LOKO_ON = 6.2
+    LOKO_KUYRUK = -10.3  # tender sonu
+    araclar = [{"kok": refs["kok"], "teker_refs": refs["tekerler"],
+                "tip": "loko", "offset": -LOKO_ON}]
+    on_son = LOKO_KUYRUK
+    for i, vspec in enumerate(sefer.get("vagonlar", [])):
+        vkok, vteker, vboy = tren.vagon_kur(f"Vagon{i}",
+                                            vspec.get("tip", "yolcu"),
+                                            vspec.get("boy", 8.6))
+        offset = on_son - 0.5 - vboy / 2 - vboy / 2  # kuyruk - vagon merkezi
+        offset = on_son - 0.5 - vboy / 2
+        araclar.append({"kok": vkok, "teker_refs": vteker,
+                        "tip": "vagon", "offset": offset})
+        on_son = offset - vboy / 2
+    for arac in araclar:
+        arac["s"] = s0 + arac["offset"]
+        trene_koku_ver(arac["kok"], None, arac["s"], patika_obj)
+    print(f"  [tren] {len(araclar)} arac, uzunluk {LOKO_ON - on_son:.1f} m")
     havuz = duman_havuzu(refs)
+
+    gece = sefer.get("gece")
+    if gece:
+        gece_kur(refs, gece)
+        if gece.get("sinyal_s") is not None:
+            sinyal_kur(patika_obj, gece["sinyal_s"],
+                       gece.get("sinyal_taraf", 1))
 
     cam_cfg = cfg["camera"]
     cam_obj = kamera_kur((0, 0, 10), (0, 10, 0), cam_cfg.get("lens", 40))
@@ -303,7 +430,11 @@ def main():
     govcem_diski(cfg, ilk_pos)
 
     if not a.gif:
-        tren.poz(refs, sefer.get("theta", 0.8))
+        for arac in araclar:
+            if arac["tip"] == "loko":
+                tren.poz(refs, arac["s"] / TEKER_R)
+            else:
+                tren.vagon_pozu(arac["teker_refs"], arac["s"])
         duman_guncelle(havuz, refs["kok"].matrix_world @ Vector((5.15, 0, 4.35)),
                        sefer.get("duman_t", 1.3))
         sc.render.filepath = out
@@ -317,9 +448,13 @@ def main():
     for f in range(a.gif):
         t = f / a.fps
         s = s0 + v * t
-        trene_koku_ver(refs["kok"], refs, s, patika_obj)
-        # kaysız yuvarlanma: teker acisi = gidilen yol / teker yaricapi
-        tren.poz(refs, s / TEKER_R)
+        for arac in araclar:
+            arac_s = s + arac["offset"]
+            trene_koku_ver(arac["kok"], None, arac_s, patika_obj)
+            if arac["tip"] == "loko":
+                tren.poz(refs, arac_s / TEKER_R)
+            else:
+                tren.vagon_pozu(arac["teker_refs"], arac_s)
         kaynak = refs["kok"].matrix_world @ Vector((5.15, 0, 4.35))
         duman_guncelle(havuz, kaynak, t + sefer.get("duman_t", 0.0))
         kamera_takip(s)
